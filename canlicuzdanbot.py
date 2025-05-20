@@ -50,11 +50,6 @@ def check_token_transactions():
         )
         send_telegram_message(message)
 
-if CUSTOM_MESSAGE:
-    send_telegram_message(f"📢 {CUSTOM_MESSAGE}")
-
-
-
 while True:
     check_token_transactions()
     time.sleep(30)
