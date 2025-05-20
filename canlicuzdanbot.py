@@ -16,22 +16,38 @@ def send_telegram_message(message):
     payload = {"chat_id": CHAT_ID, "text": message}
     requests.post(url, data=payload)
 
-def check_transactions():
+def check_token_transactions():
     global LAST_TX_HASH
-    url = f"https://api.etherscan.io/api?module=account&action=txlist&address={WALLET_ADDRESS}&sort=desc&apikey={ETHERSCAN_API_KEY}"
+    url = f"https://api.etherscan.io/api?module=account&action=tokentx&address={WALLET_ADDRESS}&sort=desc&apikey={ETHERSCAN_API_KEY}"
     response = requests.get(url).json()
+
+    if response.get('status') != '1':
+        print("Token işlemleri alınamadı:", response.get('message'))
+        return
+
     txs = response['result']
-    if txs:
-        latest_tx = txs[0]
-        tx_hash = latest_tx['hash']
-        if tx_hash != LAST_TX_HASH:
-            LAST_TX_HASH = tx_hash
-            value = int(latest_tx['value']) / 1e18
-            send_telegram_message(f"Yeni İşlem 🚨\nTx Hash: {tx_hash}\nMiktar: {value:.4f} ETH")
+    if not txs:
+        return
+
+    latest_tx = txs[0]
+    tx_hash = latest_tx['hash']
+    if tx_hash != LAST_TX_HASH:
+        LAST_TX_HASH = tx_hash
+        token_symbol = latest_tx['tokenSymbol']
+        token_name = latest_tx['tokenName']
+        value = int(latest_tx['value']) / (10 ** int(latest_tx['tokenDecimal']))
+        from_address = latest_tx['from']
+        to_address = latest_tx['to']
+        direction = '📥 Alındı' if to_address.lower() == WALLET_ADDRESS.lower() else '📤 Gönderildi'
+
+        message = (
+            f"🚨 Yeni Token İşlemi\n"
+            f"Token: {token_symbol} ({token_name})\n"
+            f"{direction}: {value:.4f} {token_symbol}\n"
+            f"Tx Link: https://etherscan.io/tx/{tx_hash}"
+        )
+        send_telegram_message(message)
 
 while True:
-    check_transactions()
-    time.sleep(30)  # her 30 saniyede bir kontrol
-
-
-
+    check_token_transactions()
+    time.sleep(30)
