@@ -50,8 +50,9 @@ def check_token_transactions():
         )
         send_telegram_message(message)
 
-        if CUSTOM_MESSAGE:
-        send_telegram_message(f"📢 {CUSTOM_MESSAGE}")
+if CUSTOM_MESSAGE:
+    send_telegram_message(f"📢 {CUSTOM_MESSAGE}")
+
 
 
 while True:
