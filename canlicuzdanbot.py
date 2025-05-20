@@ -1,10 +1,14 @@
 import requests
 import time
+import os
+from dotenv import load_dotenv
 
-TELEGRAM_TOKEN = '7430286299:AAEGASrdF998IMtprJm_AP-jM-4iUUPKHWM'
-CHAT_ID = '1006613602'
-WALLET_ADDRESS = '0xc82b2e484b161d20eae386877d57c4e5807b5581'
-ETHERSCAN_API_KEY = 'NU6IWSKQBWAJABSUCHP7JT5I81RYS1CGE5'
+load_dotenv()  # .env dosyasını oku
+
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
+WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
+ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
 LAST_TX_HASH = None
 
 def send_telegram_message(message):
