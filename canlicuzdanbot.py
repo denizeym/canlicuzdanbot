@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()  # .env dosyasını oku
 
+CUSTOM_MESSAGE = os.getenv('CUSTOM_MESSAGE')
+
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
 WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
@@ -47,6 +49,10 @@ def check_token_transactions():
             f"Tx Link: https://etherscan.io/tx/{tx_hash}"
         )
         send_telegram_message(message)
+
+        if CUSTOM_MESSAGE:
+        send_telegram_message(f"📢 {CUSTOM_MESSAGE}")
+
 
 while True:
     check_token_transactions()
