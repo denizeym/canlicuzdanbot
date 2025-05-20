@@ -1,23 +1,62 @@
 import requests
 import time
+import threading
+from flask import Flask, request
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # .env dosyasını oku
+# .env dosyasını oku
+load_dotenv()
 
-CUSTOM_MESSAGE = os.getenv('CUSTOM_MESSAGE')
-
+# Değişkenler
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('CHAT_ID')
 WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
 ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
 LAST_TX_HASH = None
 
-def send_telegram_message(message):
+# Flask app (Webhook için)
+app = Flask(__name__)
+
+# Abone kontrolü
+def chat_id_exists(chat_id):
+    try:
+        with open('subscribers.txt', 'r') as f:
+            return chat_id in f.read()
+    except FileNotFoundError:
+        return False
+
+# Abone kaydetme
+def save_chat_id(chat_id):
+    with open('subscribers.txt', 'a') as f:
+        f.write(chat_id + '\n')
+
+# Telegram'dan gelen mesajı yakala
+@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
+def telegram_webhook():
+    data = request.get_json()
+    chat_id = str(data['message']['chat']['id'])
+    if not chat_id_exists(chat_id):
+        save_chat_id(chat_id)
+        send_telegram_message(chat_id, "✅ Abone oldun! Yeni token işlemleri bildirilecek.")
+    return 'ok'
+
+# Tek kişiye mesaj
+def send_telegram_message(chat_id, message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
+    payload = {"chat_id": chat_id, "text": message}
     requests.post(url, data=payload)
 
+# Tüm abonelere mesaj
+def send_telegram_message_to_all(message):
+    try:
+        with open('subscribers.txt', 'r') as f:
+            chat_ids = f.read().splitlines()
+        for chat_id in chat_ids:
+            send_telegram_message(chat_id, message)
+    except Exception as e:
+        print("Mesaj gönderme hatası:", e)
+
+# Token işlemlerini kontrol et
 def check_token_transactions():
     global LAST_TX_HASH
     url = f"https://api.etherscan.io/api?module=account&action=tokentx&address={WALLET_ADDRESS}&sort=desc&apikey={ETHERSCAN_API_KEY}"
@@ -48,8 +87,19 @@ def check_token_transactions():
             f"{direction}: {value:.4f} {token_symbol}\n"
             f"Tx Link: https://etherscan.io/tx/{tx_hash}"
         )
-        send_telegram_message(message)
+        send_telegram_message_to_all(message)
 
-while True:
-    check_token_transactions()
-    time.sleep(30)
+# Flask server'ı başlat (background thread)
+def start_flask():
+    app.run(host='0.0.0.0', port=8080)
+
+# İşlem kontrol döngüsü
+def start_bot():
+    while True:
+        check_token_transactions()
+        time.sleep(30)
+
+# Eşzamanlı başlat
+if __name__ == '__main__':
+    threading.Thread(target=start_flask).start()
+    start_bot()
