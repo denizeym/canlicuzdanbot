@@ -99,7 +99,7 @@ def start_bot():
         check_token_transactions()
         time.sleep(30)
 
-# Eşzamanlı başlat
+# Eşzamanlı başlat dddddd
 if __name__ == '__main__':
     threading.Thread(target=start_flask).start()
     start_bot()
